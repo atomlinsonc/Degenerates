@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { calculatePayout, formatOdds } from "@/lib/odds";
 import { BetData } from "@/lib/types";
+import { apiUrl } from "@/lib/api";
 
 interface Props {
   existing?: BetData;
@@ -48,7 +49,7 @@ export function BetForm({ existing }: Props) {
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   useEffect(() => {
-    fetch("/api/participants")
+    fetch(apiUrl("/api/participants"))
       .then((r) => r.json())
       .then((data: { name: string }[]) => setKnownNames(data.map((d) => d.name)))
       .catch(() => {});
@@ -93,7 +94,7 @@ export function BetForm({ existing }: Props) {
     setLoading(true);
     try {
       const res = await fetch(
-        existing ? `/api/bets/${existing.id}` : "/api/bets",
+        existing ? apiUrl(`/api/bets/${existing.id}`) : apiUrl("/api/bets"),
         {
           method: existing ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },

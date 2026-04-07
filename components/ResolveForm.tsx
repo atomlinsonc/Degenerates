@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BetData } from "@/lib/types";
 import { calculatePayout } from "@/lib/odds";
+import { apiUrl } from "@/lib/api";
 
 interface Props {
   bet: BetData;
@@ -35,7 +36,7 @@ export function ResolveForm({ bet }: Props) {
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/bets/${bet.id}/resolve`, {
+      const res = await fetch(apiUrl(`/api/bets/${bet.id}/resolve`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ winningSide, verifiedBy, notes, resolvedAt }),

@@ -6,6 +6,7 @@ import { Trash2, Pencil, CheckCircle, Users } from "lucide-react";
 import { BetData } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { formatOdds } from "@/lib/odds";
+import { apiUrl } from "@/lib/api";
 
 interface Props {
   bet: BetData;
@@ -19,7 +20,7 @@ export function BetCard({ bet, onDelete, showActions = true }: Props) {
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${bet.title}"? This cannot be undone.`)) return;
-    const res = await fetch(`/api/bets/${bet.id}`, { method: "DELETE" });
+    const res = await fetch(apiUrl(`/api/bets/${bet.id}`), { method: "DELETE" });
     if (res.ok) {
       onDelete?.(bet.id);
     } else {

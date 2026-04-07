@@ -6,6 +6,7 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { NetProfitChart } from "@/components/NetProfitChart";
 import { MoneyFlowGraph } from "@/components/MoneyFlowGraph";
 import { RefreshCw } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 export default function StatsPage() {
   const [stats, setStats] = useState<ParticipantStats[]>([]);
@@ -19,8 +20,8 @@ export default function StatsPage() {
     setLoading(true);
     try {
       const [statsRes, flowRes] = await Promise.all([
-        fetch("/api/stats"),
-        fetch("/api/stats/money-flow"),
+        fetch(apiUrl("/api/stats")),
+        fetch(apiUrl("/api/stats/money-flow")),
       ]);
       const [statsData, flowData] = await Promise.all([statsRes.json(), flowRes.json()]);
       setStats(statsData);

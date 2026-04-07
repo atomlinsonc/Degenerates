@@ -1,8 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ParticipantStats } from "@/lib/types";
+import { withCors, optionsResponse } from "@/lib/cors";
 
-export async function GET() {
+export async function OPTIONS(request: NextRequest) {
+  return optionsResponse(request.headers.get("origin"));
+}
+
+export async function GET(request: NextRequest) {
+  const origin = request.headers.get("origin");
   try {
     // Fetch all resolved bets with transfers
     const resolvedBets = await prisma.bet.findMany({
@@ -136,9 +142,9 @@ export async function GET() {
     // Sort by net profit desc
     stats.sort((a, b) => b.netProfitLoss - a.netProfitLoss);
 
-    return NextResponse.json(stats);
+    return withCors(NextResponse.json(stats), origin);
   } catch (error) {
     console.error("GET /api/stats error:", error);
-    return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
+    return withCors(NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 }), origin);
   }
 }

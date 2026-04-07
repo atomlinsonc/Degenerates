@@ -1,43 +1,41 @@
+"use client";
+
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { useEffect, useState } from "react";
 import { BetCard } from "@/components/BetCard";
 import { BetData } from "@/lib/types";
 import { TrendingUp, CircleDollarSign, Clock, Trophy } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
-
-async function getDashboardData() {
-  const [recentBets, openCount, resolvedCount, topEarners, totalVolume] = await Promise.all([
-    prisma.bet.findMany({
-      take: 6,
-      orderBy: { createdAt: "desc" },
-      include: {
-        participants: true,
-        resolution: { include: { moneyTransfers: true } },
-      },
-    }),
-    prisma.bet.count({ where: { status: "OPEN" } }),
-    prisma.bet.count({ where: { status: "RESOLVED" } }),
-    prisma.moneyTransfer.groupBy({
-      by: ["toName"],
-      _sum: { amount: true },
-      orderBy: { _sum: { amount: "desc" } },
-      take: 1,
-    }),
-    prisma.bet.aggregate({
-      _sum: { stakeAmount: true },
-      where: { status: { in: ["OPEN", "RESOLVED"] } },
-    }),
-  ]);
-
-  return { recentBets, openCount, resolvedCount, topEarners, totalVolume };
+interface DashboardStats {
+  openCount: number;
+  resolvedCount: number;
+  totalVolume: number;
+  topEarner: string | null;
+  topEarnerAmount: number;
+  recentBets: BetData[];
 }
 
-export default async function Dashboard() {
-  const { recentBets, openCount, resolvedCount, topEarners, totalVolume } =
-    await getDashboardData();
+export default function Dashboard() {
+  const [data, setData] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const topEarner = topEarners[0];
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch(apiUrl("/api/dashboard"));
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -51,29 +49,29 @@ export default async function Dashboard() {
         <StatCard
           icon={<Clock className="w-5 h-5 text-blue-400" />}
           label="Open Bets"
-          value={openCount.toString()}
+          value={loading ? "—" : (data?.openCount ?? 0).toString()}
           href="/bets"
           color="blue"
         />
         <StatCard
           icon={<Trophy className="w-5 h-5 text-emerald-400" />}
           label="Resolved"
-          value={resolvedCount.toString()}
+          value={loading ? "—" : (data?.resolvedCount ?? 0).toString()}
           href="/results"
           color="emerald"
         />
         <StatCard
           icon={<CircleDollarSign className="w-5 h-5 text-amber-400" />}
           label="Total Volume"
-          value={`$${(totalVolume._sum.stakeAmount ?? 0).toFixed(0)}`}
+          value={loading ? "—" : `$${(data?.totalVolume ?? 0).toFixed(0)}`}
           href="/stats"
           color="amber"
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5 text-rose-400" />}
           label="Top Earner"
-          value={topEarner ? topEarner.toName : "—"}
-          sub={topEarner ? `+$${(topEarner._sum.amount ?? 0).toFixed(0)} received` : ""}
+          value={loading ? "—" : (data?.topEarner ?? "—")}
+          sub={data?.topEarner ? `+$${(data.topEarnerAmount ?? 0).toFixed(0)} received` : ""}
           href="/stats"
           color="rose"
         />
@@ -81,28 +79,16 @@ export default async function Dashboard() {
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-3">
-        <Link
-          href="/bets/new"
-          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors text-sm"
-        >
+        <Link href="/bets/new" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors text-sm">
           + New Bet
         </Link>
-        <Link
-          href="/bets"
-          className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors text-sm"
-        >
+        <Link href="/bets" className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors text-sm">
           Open Bets
         </Link>
-        <Link
-          href="/results"
-          className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors text-sm"
-        >
+        <Link href="/results" className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors text-sm">
           Results
         </Link>
-        <Link
-          href="/stats"
-          className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors text-sm"
-        >
+        <Link href="/stats" className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors text-sm">
           Stats
         </Link>
       </div>
@@ -110,7 +96,13 @@ export default async function Dashboard() {
       {/* Recent activity */}
       <div>
         <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
-        {recentBets.length === 0 ? (
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-5 animate-pulse h-52" />
+            ))}
+          </div>
+        ) : !data?.recentBets?.length ? (
           <div className="text-center py-16 text-gray-500">
             No bets yet.{" "}
             <Link href="/bets/new" className="text-emerald-400 hover:underline">
@@ -119,8 +111,8 @@ export default async function Dashboard() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {recentBets.map((bet) => (
-              <BetCard key={bet.id} bet={bet as unknown as BetData} showActions={false} />
+            {data.recentBets.map((bet) => (
+              <BetCard key={bet.id} bet={bet} showActions={false} />
             ))}
           </div>
         )}
@@ -130,12 +122,7 @@ export default async function Dashboard() {
 }
 
 function StatCard({
-  icon,
-  label,
-  value,
-  sub,
-  href,
-  color,
+  icon, label, value, sub, href, color,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -151,10 +138,7 @@ function StatCard({
     rose: "border-rose-500/20 hover:border-rose-500/40",
   };
   return (
-    <Link
-      href={href}
-      className={`bg-gray-900 border ${border[color]} rounded-xl p-4 flex flex-col gap-2 hover:bg-gray-800/60 transition-all`}
-    >
+    <Link href={href} className={`bg-gray-900 border ${border[color]} rounded-xl p-4 flex flex-col gap-2 hover:bg-gray-800/60 transition-all`}>
       <div className="flex items-center gap-2">
         {icon}
         <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</span>

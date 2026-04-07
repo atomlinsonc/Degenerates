@@ -6,6 +6,7 @@ import { BetData } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatOdds } from "@/lib/odds";
 import { RefreshCw, Search, Filter } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 export default function ResultsPage() {
   const [bets, setBets] = useState<BetData[]>([]);
@@ -23,7 +24,7 @@ export default function ResultsPage() {
       if (search) params.set("search", search);
       if (participantFilter) params.set("participant", participantFilter);
 
-      const res = await fetch(`/api/bets?${params}`);
+      const res = await fetch(apiUrl(`/api/bets?${params}`));
       const data = await res.json();
       setBets(data);
     } catch {
@@ -34,7 +35,7 @@ export default function ResultsPage() {
   }, [statusFilter, search, participantFilter]);
 
   useEffect(() => {
-    fetch("/api/participants")
+    fetch(apiUrl("/api/participants"))
       .then((r) => r.json())
       .then((data: { name: string }[]) => setParticipants(data.map((d) => d.name)))
       .catch(() => {});

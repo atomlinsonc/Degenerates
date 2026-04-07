@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BetCard } from "@/components/BetCard";
 import { BetData } from "@/lib/types";
 import { RefreshCw, Plus } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 export default function BetsPage() {
   const [bets, setBets] = useState<BetData[]>([]);
@@ -13,7 +14,7 @@ export default function BetsPage() {
   const fetchBets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/bets?status=OPEN");
+      const res = await fetch(apiUrl("/api/bets?status=OPEN"));
       const data = await res.json();
       setBets(data);
     } catch {

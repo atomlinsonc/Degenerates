@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculatePayout } from "@/lib/odds";
+import { withCors, optionsResponse } from "@/lib/cors";
+
+export async function OPTIONS(request: NextRequest) {
+  return optionsResponse(request.headers.get("origin"));
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const origin = request.headers.get("origin");
   const { id } = await params;
   try {
     const body = await request.json();
     const { winningSide, verifiedBy, notes, resolvedAt } = body;
 
     if (!winningSide || !["A", "B"].includes(winningSide)) {
-      return NextResponse.json({ error: "winningSide must be A or B" }, { status: 400 });
+      return withCors(NextResponse.json({ error: "winningSide must be A or B" }, { status: 400 }), origin);
     }
 
     const bet = await prisma.bet.findUnique({
@@ -20,9 +26,9 @@ export async function POST(
       include: { participants: true, resolution: true },
     });
 
-    if (!bet) return NextResponse.json({ error: "Bet not found" }, { status: 404 });
+    if (!bet) return withCors(NextResponse.json({ error: "Bet not found" }, { status: 404 }), origin);
     if (bet.status === "RESOLVED") {
-      return NextResponse.json({ error: "Bet is already resolved" }, { status: 400 });
+      return withCors(NextResponse.json({ error: "Bet is already resolved" }, { status: 400 }), origin);
     }
 
     const payout = calculatePayout(
@@ -93,9 +99,9 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(updatedBet);
+    return withCors(NextResponse.json(updatedBet), origin);
   } catch (error) {
     console.error("POST /api/bets/[id]/resolve error:", error);
-    return NextResponse.json({ error: "Failed to resolve bet" }, { status: 500 });
+    return withCors(NextResponse.json({ error: "Failed to resolve bet" }, { status: 500 }), origin);
   }
 }
