@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Participant {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  betParticipants BetParticipant[]
+}
+
+model Bet {
+  id             String    @id @default(cuid())
+  title          String
+  description    String
+  eventDate      DateTime?
+  resolutionDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  status         BetStatus @default(OPEN)
+  creatorName    String
+  stakeAmount    Float
+  oddsType       OddsType  @default(EVEN)
+  oddsValueA     Float?
+  oddsValueB     Float?
+  sideALabel     String    @default("Side A")
+  sideBLabel     String    @default("Side B")
+  notes          String?
+
+  participants BetParticipant[]
+  resolution   Resolution?
+}
+
+model BetParticipant {
+  id              String  @id @default(cuid())
+  betId           String
+  participantName String
+  side            String
+  amountRisked    Float?
+  potentialPayout Float?
+  participantId   String?
+
+  bet         Bet          @relation(fields: [betId], references: [id], onDelete: Cascade)
+  participant Participant? @relation(fields: [participantId], references: [id])
+}
+
+model Resolution {
+  id          String   @id @default(cuid())
+  betId       String   @unique
+  resolvedAt  DateTime @default(now())
+  winningSide String
+  verifiedBy  String?
+  notes       String?
+
+  bet            Bet             @relation(fields: [betId], references: [id], onDelete: Cascade)
+  moneyTransfers MoneyTransfer[]
+}
+
+model MoneyTransfer {
+  id           String @id @default(cuid())
+  resolutionId String
+  fromName     String
+  toName       String
+  amount       Float
+
+  resolution Resolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+}
+
+enum BetStatus {
+  OPEN
+  RESOLVED
+  CANCELLED
+}
+
+enum OddsType {
+  EVEN
+  AMERICAN
+  DECIMAL
+}
