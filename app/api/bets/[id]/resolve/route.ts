@@ -68,7 +68,7 @@ export async function POST(
       }
     }
 
-    const resolution = await prisma.resolution.create({
+    await prisma.resolution.create({
       data: {
         betId: id,
         resolvedAt: resolvedAt ? new Date(resolvedAt) : new Date(),

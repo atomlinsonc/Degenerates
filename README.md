@@ -1,24 +1,34 @@
-# Degenerates 🎲
+# Degenerates
 
-A simple, beautiful friends bet tracker. Record bets, resolve outcomes, and track who owes whom.
+A lightweight friends bet tracker built with Next.js App Router, Prisma, and PostgreSQL for Vercel deployment.
 
 ## Features
 
-- Create custom bets with even odds, American odds, or decimal odds
-- Resolve bets and auto-calculate settlements
-- Full history with filters by participant, status, and date
-- Stats page with leaderboard, per-player breakdown, net P/L chart, and money flow network graph
-- Dark-mode UI optimized for mobile and desktop
-- No auth — anyone with the link can use it
+- Create 1v1 or group bets with custom descriptions, dates, side labels, and notes
+- Support even, American, and decimal odds with payout previews
+- Edit, delete, cancel, and resolve bets without authentication
+- Browse open bets, history/results, dashboard activity, and participant stats
+- View leaderboard, net profit/loss chart, and money-flow network
+- Refresh results and stats manually
+- Export filtered results as CSV
+- Seeded with sample participants and sample bets
 
----
+## Stack
+
+- Next.js 16 App Router
+- TypeScript
+- Prisma ORM
+- PostgreSQL
+- Tailwind CSS v4
+- Recharts plus a custom SVG network graph
+- Vercel Route Handlers / Functions
 
 ## Local Setup
 
 ### Prerequisites
 
-- Node.js 18+
-- A PostgreSQL database (Neon, Supabase, Railway, or local)
+- Node.js 20+
+- PostgreSQL database
 
 ### 1. Install dependencies
 
@@ -26,33 +36,26 @@ A simple, beautiful friends bet tracker. Record bets, resolve outcomes, and trac
 npm install
 ```
 
-### 2. Set up environment variables
+### 2. Configure environment variables
 
-Copy `.env.example` to `.env` and fill in your database URLs:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
+Create `.env` from `.env.example`.
 
 ```env
-# Pooled connection (used by the app)
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public&pgbouncer=true&connect_timeout=15"
-
-# Direct connection (used by Prisma migrations)
 DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
 ```
 
-> **Neon users:** Use the pooled connection string for `DATABASE_URL` and the direct/non-pooled string for `DIRECT_URL`.
+Use the pooled connection for `DATABASE_URL` and the direct or non-pooled connection for `DIRECT_URL`.
 
-### 3. Run database migrations
+### 3. Create the schema
+
+For a fresh local database:
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate dev
 ```
 
-Or if you're connecting to an existing DB and just want to push the schema:
+For an existing database you just want to sync:
 
 ```bash
 npm run db:push
@@ -64,107 +67,100 @@ npm run db:push
 npm run db:seed
 ```
 
-This creates 5 participants (Austin, Kevin, Hal, Jason, Vamshee), 6 resolved bets, and 5 open bets so you can see the app working immediately.
+The seed includes Austin, Kevin, Hal, Jason, Vamshee, a mix of open and resolved bets, sports-style bets, and custom personal bets.
 
-### 5. Run the dev server
+### 5. Run the app
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3000`.
 
----
+## API Endpoints
 
-## Database Setup (Neon — Recommended)
-
-Neon is a free serverless PostgreSQL provider that works great with Vercel.
-
-1. Go to [neon.tech](https://neon.tech) and create a free account
-2. Create a new project
-3. Copy the **pooled connection string** → use as `DATABASE_URL`
-4. Copy the **direct connection string** (or the same string without `?pgbouncer=true`) → use as `DIRECT_URL`
-5. Run `npx prisma migrate deploy` (or `npm run db:push`) to set up the schema
-
----
+- `GET /api/dashboard`
+- `GET /api/participants`
+- `GET /api/bets`
+- `POST /api/bets`
+- `GET /api/bets/:id`
+- `PUT /api/bets/:id`
+- `DELETE /api/bets/:id`
+- `POST /api/bets/:id/resolve`
+- `GET /api/results`
+- `GET /api/results/export`
+- `GET /api/stats`
+- `GET /api/stats/money-flow`
 
 ## Vercel Deployment
 
 ### 1. Push to GitHub
 
 ```bash
-git init
 git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
+git commit -m "Build friends bet tracker"
+git push origin main
 ```
 
-### 2. Connect to Vercel
+### 2. Create the database
 
-1. Go to [vercel.com](https://vercel.com) → New Project → Import from GitHub
-2. Select your repo
-3. Framework preset: **Next.js** (auto-detected)
+Neon is the simplest fit for Vercel. Create a PostgreSQL project there and copy both connection strings.
 
-### 3. Set environment variables in Vercel
+### 3. Import into Vercel
 
-In your Vercel project → Settings → Environment Variables, add:
+- Create a new Vercel project from this GitHub repo
+- Framework preset should auto-detect as Next.js
+- Keep the default install command
 
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | Your pooled PostgreSQL connection string |
-| `DIRECT_URL` | Your direct (non-pooled) PostgreSQL connection string |
+### 4. Add environment variables in Vercel
 
-### 4. Run migrations on first deploy
+Add exactly these variables:
 
-After deploying, run migrations against your production DB:
+- `DATABASE_URL`
+  Use your pooled PostgreSQL connection string
+- `DIRECT_URL`
+  Use your direct PostgreSQL connection string
+
+No other app-specific environment variables are required.
+
+### 5. Set the build command
+
+Either leave Vercel's default build alone and run migrations separately, or set the build command to:
+
+```bash
+npx prisma migrate deploy && next build
+```
+
+### 6. Run production migrations
+
+If you did not include migration deploy in the build command, run:
 
 ```bash
 npx prisma migrate deploy
 ```
 
-Or add this to your Vercel build command:
-
-```
-npx prisma migrate deploy && next build
-```
-
-### 5. Seed production (optional)
+### 7. Seed production data if desired
 
 ```bash
-DATABASE_URL="your-prod-url" DIRECT_URL="your-direct-url" npm run db:seed
+npm run db:seed
 ```
 
----
+## Environment Variables
 
-## Environment Variables Reference
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | App runtime database connection |
+| `DIRECT_URL` | Yes | Prisma migration connection |
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string (pooled for Neon/Supabase) |
-| `DIRECT_URL` | Yes | Direct PostgreSQL connection (for migrations) |
+## Useful Scripts
 
----
-
-## Scripts
-
-| Script | Description |
-|---|---|
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
-| `npm run db:push` | Push Prisma schema to DB (no migration history) |
-| `npm run db:migrate` | Run pending migrations |
-| `npm run db:seed` | Seed with sample data |
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Start local dev server |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:migrate` | Run production migrations |
+| `npm run db:push` | Push schema without migrations |
+| `npm run db:seed` | Seed sample data |
 | `npm run db:studio` | Open Prisma Studio |
-
----
-
-## Stack
-
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript
-- **Database:** PostgreSQL via Prisma ORM
-- **Styling:** Tailwind CSS v4
-- **Charts:** Recharts
-- **Icons:** Lucide React
-- **Deployment:** Vercel

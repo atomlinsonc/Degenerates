@@ -40,6 +40,7 @@ export interface BetData {
   creatorName: string;
   stakeAmount: number;
   oddsType: OddsType;
+  payoutLogic: string;
   oddsValueA: number | null;
   oddsValueB: number | null;
   sideALabel: string;

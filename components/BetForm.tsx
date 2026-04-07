@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { calculatePayout, formatOdds } from "@/lib/odds";
+import { calculatePayout, formatOdds, formatPayoutLogic } from "@/lib/odds";
 import { BetData } from "@/lib/types";
 import { apiUrl } from "@/lib/api";
 
@@ -16,63 +16,66 @@ export function BetForm({ existing }: Props) {
   const [error, setError] = useState("");
   const [knownNames, setKnownNames] = useState<string[]>([]);
 
-  // Form state
   const [title, setTitle] = useState(existing?.title ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
-  const [eventDate, setEventDate] = useState(
-    existing?.eventDate ? existing.eventDate.split("T")[0] : ""
-  );
+  const [eventDate, setEventDate] = useState(existing?.eventDate ? existing.eventDate.split("T")[0] : "");
   const [resolutionDate, setResolutionDate] = useState(
     existing?.resolutionDate ? existing.resolutionDate.split("T")[0] : ""
   );
   const [creatorName, setCreatorName] = useState(existing?.creatorName ?? "");
-  const [stakeAmount, setStakeAmount] = useState(
-    existing?.stakeAmount?.toString() ?? ""
+  const [status, setStatus] = useState<"OPEN" | "CANCELLED">(
+    existing?.status === "CANCELLED" ? "CANCELLED" : "OPEN"
   );
+  const [stakeAmount, setStakeAmount] = useState(existing?.stakeAmount?.toString() ?? "");
   const [oddsType, setOddsType] = useState<"EVEN" | "AMERICAN" | "DECIMAL">(
     existing?.oddsType ?? "EVEN"
   );
-  const [oddsValueA, setOddsValueA] = useState(
-    existing?.oddsValueA?.toString() ?? ""
-  );
-  const [oddsValueB, setOddsValueB] = useState(
-    existing?.oddsValueB?.toString() ?? ""
-  );
+  const [oddsValueA, setOddsValueA] = useState(existing?.oddsValueA?.toString() ?? "");
+  const [oddsValueB, setOddsValueB] = useState(existing?.oddsValueB?.toString() ?? "");
   const [sideALabel, setSideALabel] = useState(existing?.sideALabel ?? "Side A");
   const [sideBLabel, setSideBLabel] = useState(existing?.sideBLabel ?? "Side B");
   const [sideAParticipants, setSideAParticipants] = useState<string[]>(
-    existing?.participants.filter((p) => p.side === "A").map((p) => p.participantName) ?? [""]
+    existing?.participants.filter((participant) => participant.side === "A").map((participant) => participant.participantName) ?? [""]
   );
   const [sideBParticipants, setSideBParticipants] = useState<string[]>(
-    existing?.participants.filter((p) => p.side === "B").map((p) => p.participantName) ?? [""]
+    existing?.participants.filter((participant) => participant.side === "B").map((participant) => participant.participantName) ?? [""]
   );
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   useEffect(() => {
     fetch(apiUrl("/api/participants"))
-      .then((r) => r.json())
-      .then((data: { name: string }[]) => setKnownNames(data.map((d) => d.name)))
+      .then((response) => response.json())
+      .then((data: { name: string }[]) => setKnownNames(data.map((participant) => participant.name)))
       .catch(() => {});
   }, []);
 
-  const stake = parseFloat(stakeAmount) || 0;
-  const oA = oddsValueA ? parseFloat(oddsValueA) : null;
-  const oB = oddsValueB ? parseFloat(oddsValueB) : null;
-  const payout = stake > 0 ? calculatePayout(stake, oddsType, oA, oB) : null;
+  const stake = Number.parseFloat(stakeAmount) || 0;
+  const parsedOddsA = oddsValueA ? Number.parseFloat(oddsValueA) : null;
+  const parsedOddsB = oddsValueB ? Number.parseFloat(oddsValueB) : null;
+  const payout = stake > 0 ? calculatePayout(stake, oddsType, parsedOddsA, parsedOddsB) : null;
+  const payoutLogic = "LOSERS_PAY_WINNERS";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
 
-    const cleanA = sideAParticipants.filter((n) => n.trim());
-    const cleanB = sideBParticipants.filter((n) => n.trim());
+    const cleanA = sideAParticipants.map((name) => name.trim()).filter(Boolean);
+    const cleanB = sideBParticipants.map((name) => name.trim()).filter(Boolean);
+    const overlap = cleanA.some((name) =>
+      cleanB.some((other) => other.toLowerCase() === name.toLowerCase())
+    );
 
     if (!title.trim()) return setError("Title is required");
     if (!creatorName.trim()) return setError("Creator name is required");
-    if (!stakeAmount || parseFloat(stakeAmount) <= 0)
+    if (!stakeAmount || Number.parseFloat(stakeAmount) <= 0) {
       return setError("Stake must be a positive number");
-    if (!cleanA.length || !cleanB.length)
+    }
+    if (!cleanA.length || !cleanB.length) {
       return setError("Each side needs at least one participant");
+    }
+    if (overlap) {
+      return setError("A participant cannot be on both sides of the same bet");
+    }
 
     const body = {
       title,
@@ -80,10 +83,12 @@ export function BetForm({ existing }: Props) {
       eventDate: eventDate || null,
       resolutionDate: resolutionDate || null,
       creatorName,
-      stakeAmount: parseFloat(stakeAmount),
+      status,
+      stakeAmount: Number.parseFloat(stakeAmount),
       oddsType,
-      oddsValueA: oA,
-      oddsValueB: oB,
+      payoutLogic,
+      oddsValueA: parsedOddsA,
+      oddsValueB: parsedOddsB,
       sideALabel,
       sideBLabel,
       sideAParticipants: cleanA,
@@ -93,7 +98,7 @@ export function BetForm({ existing }: Props) {
 
     setLoading(true);
     try {
-      const res = await fetch(
+      const response = await fetch(
         existing ? apiUrl(`/api/bets/${existing.id}`) : apiUrl("/api/bets"),
         {
           method: existing ? "PUT" : "POST",
@@ -102,8 +107,8 @@ export function BetForm({ existing }: Props) {
         }
       );
 
-      if (!res.ok) {
-        const data = await res.json();
+      if (!response.ok) {
+        const data = await response.json();
         setError(data.error ?? "Something went wrong");
         return;
       }
@@ -111,30 +116,29 @@ export function BetForm({ existing }: Props) {
       router.push("/bets");
       router.refresh();
     } catch {
-      setError("Network error — please try again");
+      setError("Network error - please try again");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
       {error && (
         <div className="bg-red-900/40 border border-red-500/40 text-red-300 px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}
 
-      {/* Basic Info */}
       <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Bet Details</h2>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Bet Title *</label>
           <input
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Austin vs Kevin — Basketball game"
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Austin vs Kevin - Basketball game"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm"
           />
         </div>
@@ -143,45 +147,58 @@ export function BetForm({ existing }: Props) {
           <label className="block text-sm font-medium text-gray-300 mb-1">Condition / Description</label>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(event) => setDescription(event.target.value)}
             placeholder="Detailed condition of the bet..."
             rows={3}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm resize-none"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Event Date</label>
             <input
               type="date"
               value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
+              onChange={(event) => setEventDate(event.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Resolution Date</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Expected Resolution Date</label>
             <input
               type="date"
               value={resolutionDate}
-              onChange={(e) => setResolutionDate(e.target.value)}
+              onChange={(event) => setResolutionDate(event.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as "OPEN" | "CANCELLED")}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm"
+            >
+              <option value="OPEN">Open</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Created By *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Creator Name *</label>
           <input
             list="known-names"
             value={creatorName}
-            onChange={(e) => setCreatorName(e.target.value)}
+            onChange={(event) => setCreatorName(event.target.value)}
             placeholder="Your name"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm"
           />
           <datalist id="known-names">
-            {knownNames.map((n) => <option key={n} value={n} />)}
+            {knownNames.map((name) => (
+              <option key={name} value={name} />
+            ))}
           </datalist>
         </div>
 
@@ -189,7 +206,7 @@ export function BetForm({ existing }: Props) {
           <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
           <textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(event) => setNotes(event.target.value)}
             placeholder="Optional notes..."
             rows={2}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm resize-none"
@@ -197,11 +214,10 @@ export function BetForm({ existing }: Props) {
         </div>
       </section>
 
-      {/* Stakes & Odds */}
       <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Stakes &amp; Odds</h2>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Stakes and Odds</h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Stake Amount ($) *</label>
             <input
@@ -209,7 +225,7 @@ export function BetForm({ existing }: Props) {
               min="0.01"
               step="0.01"
               value={stakeAmount}
-              onChange={(e) => setStakeAmount(e.target.value)}
+              onChange={(event) => setStakeAmount(event.target.value)}
               placeholder="20.00"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm"
             />
@@ -218,40 +234,40 @@ export function BetForm({ existing }: Props) {
             <label className="block text-sm font-medium text-gray-300 mb-1">Odds Type</label>
             <select
               value={oddsType}
-              onChange={(e) => setOddsType(e.target.value as "EVEN" | "AMERICAN" | "DECIMAL")}
+              onChange={(event) => setOddsType(event.target.value as "EVEN" | "AMERICAN" | "DECIMAL")}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm"
             >
-              <option value="EVEN">Even (1:1)</option>
-              <option value="AMERICAN">American (-110 / +150)</option>
-              <option value="DECIMAL">Decimal (1.91 / 2.10)</option>
+              <option value="EVEN">Even</option>
+              <option value="AMERICAN">American</option>
+              <option value="DECIMAL">Decimal</option>
             </select>
           </div>
         </div>
 
         {oddsType !== "EVEN" && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                {oddsType === "AMERICAN" ? "Side A odds (e.g. -110)" : "Side A decimal (e.g. 1.91)"}
+                {oddsType === "AMERICAN" ? "Side A odds" : "Side A decimal"}
               </label>
               <input
                 type="number"
                 step={oddsType === "AMERICAN" ? "1" : "0.01"}
                 value={oddsValueA}
-                onChange={(e) => setOddsValueA(e.target.value)}
+                onChange={(event) => setOddsValueA(event.target.value)}
                 placeholder={oddsType === "AMERICAN" ? "-110" : "1.91"}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                {oddsType === "AMERICAN" ? "Side B odds (e.g. +130)" : "Side B decimal (e.g. 2.10)"}
+                {oddsType === "AMERICAN" ? "Side B odds" : "Side B decimal"}
               </label>
               <input
                 type="number"
                 step={oddsType === "AMERICAN" ? "1" : "0.01"}
                 value={oddsValueB}
-                onChange={(e) => setOddsValueB(e.target.value)}
+                onChange={(event) => setOddsValueB(event.target.value)}
                 placeholder={oddsType === "AMERICAN" ? "+130" : "2.10"}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-sm"
               />
@@ -259,49 +275,60 @@ export function BetForm({ existing }: Props) {
           </div>
         )}
 
-        {/* Payout preview */}
         {payout && (
           <div className="bg-gray-800/60 rounded-lg p-3 text-xs text-gray-400 space-y-1">
             <div className="font-semibold text-gray-300 mb-1">Payout Preview</div>
             <div>
-              Odds: <span className="text-white">{formatOdds(oddsType, oA, oB)}</span>
+              Odds: <span className="text-white">{formatOdds(oddsType, parsedOddsA, parsedOddsB)}</span>
             </div>
             <div>
-              Side A risks <span className="text-white">${payout.sideAAmountRisked.toFixed(2)}</span> → wins{" "}
-              <span className="text-emerald-400">${payout.sideAWinsNet.toFixed(2)}</span>
+              Payout logic: <span className="text-white">{formatPayoutLogic(payoutLogic)}</span>
             </div>
             <div>
-              Side B risks <span className="text-white">${payout.sideBAmountRisked.toFixed(2)}</span> → wins{" "}
-              <span className="text-emerald-400">${payout.sideBWinsNet.toFixed(2)}</span>
+              Side A risks <span className="text-white">${payout.sideAAmountRisked.toFixed(2)}</span> and nets{" "}
+              <span className="text-emerald-400">${payout.sideAWinsNet.toFixed(2)}</span> if it wins.
+            </div>
+            <div>
+              Side B risks <span className="text-white">${payout.sideBAmountRisked.toFixed(2)}</span> and nets{" "}
+              <span className="text-emerald-400">${payout.sideBWinsNet.toFixed(2)}</span> if it wins.
+            </div>
+            <div>
+              Settlement transfer ranges from{" "}
+              <span className="text-white">
+                ${Math.min(payout.sideATransferIfBWins, payout.sideBTransferIfAWins).toFixed(2)}
+              </span>{" "}
+              to{" "}
+              <span className="text-white">
+                ${Math.max(payout.sideATransferIfBWins, payout.sideBTransferIfAWins).toFixed(2)}
+              </span>
+              .
             </div>
           </div>
         )}
       </section>
 
-      {/* Participants */}
       <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Participants</h2>
 
-        {/* Side A */}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <input
               value={sideALabel}
-              onChange={(e) => setSideALabel(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-blue-300 font-semibold text-sm focus:outline-none focus:border-blue-500 w-32"
+              onChange={(event) => setSideALabel(event.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-blue-300 font-semibold text-sm focus:outline-none focus:border-blue-500 w-40"
               placeholder="Side A label"
             />
-            <span className="text-gray-500 text-xs">(label is optional)</span>
+            <span className="text-gray-500 text-xs">Who picked what on Side A</span>
           </div>
-          {sideAParticipants.map((name, i) => (
-            <div key={i} className="flex gap-2 mb-2">
+          {sideAParticipants.map((name, index) => (
+            <div key={`side-a-${index}`} className="flex gap-2 mb-2">
               <input
                 list="known-names"
                 value={name}
-                onChange={(e) => {
-                  const arr = [...sideAParticipants];
-                  arr[i] = e.target.value;
-                  setSideAParticipants(arr);
+                onChange={(event) => {
+                  const next = [...sideAParticipants];
+                  next[index] = event.target.value;
+                  setSideAParticipants(next);
                 }}
                 placeholder="Participant name"
                 className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
@@ -309,10 +336,10 @@ export function BetForm({ existing }: Props) {
               {sideAParticipants.length > 1 && (
                 <button
                   type="button"
-                  onClick={() => setSideAParticipants(sideAParticipants.filter((_, j) => j !== i))}
+                  onClick={() => setSideAParticipants(sideAParticipants.filter((_, itemIndex) => itemIndex !== index))}
                   className="px-3 py-2 text-gray-500 hover:text-red-400 text-sm"
                 >
-                  ×
+                  Remove
                 </button>
               )}
             </div>
@@ -328,25 +355,25 @@ export function BetForm({ existing }: Props) {
 
         <div className="border-t border-gray-800" />
 
-        {/* Side B */}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <input
               value={sideBLabel}
-              onChange={(e) => setSideBLabel(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-rose-300 font-semibold text-sm focus:outline-none focus:border-rose-500 w-32"
+              onChange={(event) => setSideBLabel(event.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-rose-300 font-semibold text-sm focus:outline-none focus:border-rose-500 w-40"
               placeholder="Side B label"
             />
+            <span className="text-gray-500 text-xs">Who picked what on Side B</span>
           </div>
-          {sideBParticipants.map((name, i) => (
-            <div key={i} className="flex gap-2 mb-2">
+          {sideBParticipants.map((name, index) => (
+            <div key={`side-b-${index}`} className="flex gap-2 mb-2">
               <input
                 list="known-names"
                 value={name}
-                onChange={(e) => {
-                  const arr = [...sideBParticipants];
-                  arr[i] = e.target.value;
-                  setSideBParticipants(arr);
+                onChange={(event) => {
+                  const next = [...sideBParticipants];
+                  next[index] = event.target.value;
+                  setSideBParticipants(next);
                 }}
                 placeholder="Participant name"
                 className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-rose-500 text-sm"
@@ -354,10 +381,10 @@ export function BetForm({ existing }: Props) {
               {sideBParticipants.length > 1 && (
                 <button
                   type="button"
-                  onClick={() => setSideBParticipants(sideBParticipants.filter((_, j) => j !== i))}
+                  onClick={() => setSideBParticipants(sideBParticipants.filter((_, itemIndex) => itemIndex !== index))}
                   className="px-3 py-2 text-gray-500 hover:text-red-400 text-sm"
                 >
-                  ×
+                  Remove
                 </button>
               )}
             </div>

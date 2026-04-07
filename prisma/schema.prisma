@@ -28,6 +28,7 @@ model Bet {
   creatorName    String
   stakeAmount    Float
   oddsType       OddsType  @default(EVEN)
+  payoutLogic    String    @default("LOSERS_PAY_WINNERS")
   oddsValueA     Float?
   oddsValueB     Float?
   sideALabel     String    @default("Side A")

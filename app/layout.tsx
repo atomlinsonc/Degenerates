@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Degenerates — Friends Bet Tracker",
-  description: "Track bets with your degenerate friends",
+  title: "Degenerates - Friends Bet Tracker",
+  description: "Track bets with your friends, settle results, and see who is up overall.",
 };
 
 export default function RootLayout({
@@ -29,7 +29,7 @@ export default function RootLayout({
         <Nav />
         <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">{children}</main>
         <footer className="text-center text-gray-600 text-xs py-4 border-t border-gray-800">
-          Degenerates &mdash; bet responsibly (lol)
+          Degenerates - private friend-group bet tracker
         </footer>
       </body>
     </html>

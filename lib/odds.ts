@@ -138,6 +138,14 @@ export function formatOdds(
   return "Even";
 }
 
+export function formatPayoutLogic(payoutLogic?: string | null): string {
+  switch (payoutLogic) {
+    case "LOSERS_PAY_WINNERS":
+    default:
+      return "Losers pay winners equally based on the side that loses.";
+  }
+}
+
 function formatAmericanLine(v: number): string {
   if (v > 0) return `+${v}`;
   return `${v}`;
