@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
         totalBets: 0,
         betsWon: 0,
         betsLost: 0,
+        betsPushed: 0,
         winPct: 0,
         totalWon: 0,
         totalLost: 0,
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
             totalBets: 0,
             betsWon: 0,
             betsLost: 0,
+            betsPushed: 0,
             winPct: 0,
             totalWon: 0,
             totalLost: 0,
@@ -72,8 +74,9 @@ export async function GET(request: NextRequest) {
         const s = statsMap[name];
         s.totalBets += 1;
 
-        const didWin = p.side === winningSide;
-        if (didWin) {
+        if (winningSide === "PUSH") {
+          s.betsPushed += 1;
+        } else if (p.side === winningSide) {
           s.betsWon += 1;
         } else {
           s.betsLost += 1;
@@ -111,6 +114,7 @@ export async function GET(request: NextRequest) {
             totalBets: 0,
             betsWon: 0,
             betsLost: 0,
+            betsPushed: 0,
             winPct: 0,
             totalWon: 0,
             totalLost: 0,
@@ -128,8 +132,8 @@ export async function GET(request: NextRequest) {
     const stats = Object.values(statsMap).map((s) => ({
       ...s,
       winPct:
-        s.totalBets > 0
-          ? Math.round((s.betsWon / s.totalBets) * 100)
+        s.betsWon + s.betsLost > 0
+          ? Math.round((s.betsWon / (s.betsWon + s.betsLost)) * 100)
           : 0,
       totalWon: Math.round(s.totalWon * 100) / 100,
       totalLost: Math.round(s.totalLost * 100) / 100,

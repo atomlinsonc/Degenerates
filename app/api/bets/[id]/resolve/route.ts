@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { calculatePayout } from "@/lib/odds";
 import { withCors, optionsResponse } from "@/lib/cors";
 
+const validOutcomes = ["A", "B", "PUSH"] as const;
+
 export async function OPTIONS(request: NextRequest) {
   return optionsResponse(request.headers.get("origin"));
 }
@@ -17,8 +19,11 @@ export async function POST(
     const body = await request.json();
     const { winningSide, verifiedBy, notes, resolvedAt } = body;
 
-    if (!winningSide || !["A", "B"].includes(winningSide)) {
-      return withCors(NextResponse.json({ error: "winningSide must be A or B" }, { status: 400 }), origin);
+    if (!winningSide || !validOutcomes.includes(winningSide)) {
+      return withCors(
+        NextResponse.json({ error: "winningSide must be A, B, or PUSH" }, { status: 400 }),
+        origin
+      );
     }
 
     const bet = await prisma.bet.findUnique({
@@ -55,7 +60,7 @@ export async function POST(
           });
         }
       }
-    } else {
+    } else if (winningSide === "B") {
       // Side A pays Side B
       for (const loser of sideAParticipants) {
         for (const winner of sideBParticipants) {

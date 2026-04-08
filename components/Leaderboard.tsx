@@ -23,14 +23,30 @@ export function Leaderboard({ stats }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-800">
-            <th className="px-4 py-3 text-left text-xs text-gray-500 font-semibold uppercase tracking-wide w-8">#</th>
-            <th className="px-4 py-3 text-left text-xs text-gray-500 font-semibold uppercase tracking-wide">Player</th>
-            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide">W-L</th>
-            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide">Win%</th>
-            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide hidden sm:table-cell">Won</th>
-            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide hidden sm:table-cell">Lost</th>
-            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide">Net P/L</th>
-            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide hidden md:table-cell">Exposure</th>
+            <th className="px-4 py-3 text-left text-xs text-gray-500 font-semibold uppercase tracking-wide w-8">
+              #
+            </th>
+            <th className="px-4 py-3 text-left text-xs text-gray-500 font-semibold uppercase tracking-wide">
+              Player
+            </th>
+            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide">
+              W-L-P
+            </th>
+            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide">
+              Win%
+            </th>
+            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide hidden sm:table-cell">
+              Won
+            </th>
+            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide hidden sm:table-cell">
+              Lost
+            </th>
+            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide">
+              Net P/L
+            </th>
+            <th className="px-4 py-3 text-right text-xs text-gray-500 font-semibold uppercase tracking-wide hidden md:table-cell">
+              Exposure
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -47,12 +63,12 @@ export function Leaderboard({ stats }: Props) {
                   <span className="font-semibold text-white">{s.name}</span>
                   {i === 0 && (
                     <span className="ml-2 text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-medium">
-                      👑 Top
+                      Top
                     </span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right text-gray-300">
-                  {s.betsWon}-{s.betsLost}
+                  {s.betsWon}-{s.betsLost}-{s.betsPushed}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className={s.winPct >= 50 ? "text-emerald-400" : "text-rose-400"}>
@@ -74,7 +90,15 @@ export function Leaderboard({ stats }: Props) {
                     ) : (
                       <Minus className="w-3.5 h-3.5 text-gray-500" />
                     )}
-                    <span className={isPositive ? "text-emerald-400" : isNegative ? "text-rose-400" : "text-gray-400"}>
+                    <span
+                      className={
+                        isPositive
+                          ? "text-emerald-400"
+                          : isNegative
+                            ? "text-rose-400"
+                            : "text-gray-400"
+                      }
+                    >
                       {isPositive ? "+" : ""}${s.netProfitLoss.toFixed(2)}
                     </span>
                   </div>

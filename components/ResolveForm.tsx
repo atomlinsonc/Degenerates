@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BetData } from "@/lib/types";
+import { BetData, ResolutionOutcome } from "@/lib/types";
 import { calculatePayout } from "@/lib/odds";
 import { apiUrl } from "@/lib/api";
 
@@ -12,7 +12,7 @@ interface Props {
 
 export function ResolveForm({ bet }: Props) {
   const router = useRouter();
-  const [winningSide, setWinningSide] = useState<"A" | "B" | "">("");
+  const [winningSide, setWinningSide] = useState<ResolutionOutcome | "">("");
   const [verifiedBy, setVerifiedBy] = useState("");
   const [notes, setNotes] = useState("");
   const [resolvedAt, setResolvedAt] = useState(new Date().toISOString().split("T")[0]);
@@ -31,7 +31,7 @@ export function ResolveForm({ bet }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!winningSide) return setError("Select the winning side");
+    if (!winningSide) return setError("Select an outcome");
     setError("");
     setLoading(true);
 
@@ -51,7 +51,7 @@ export function ResolveForm({ bet }: Props) {
       router.push("/results");
       router.refresh();
     } catch {
-      setError("Network error — please try again");
+      setError("Network error - please try again");
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,6 @@ export function ResolveForm({ bet }: Props) {
         </div>
       )}
 
-      {/* Bet summary */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <h2 className="font-semibold text-white text-lg mb-1">{bet.title}</h2>
         {bet.description && <p className="text-gray-400 text-sm mb-3">{bet.description}</p>}
@@ -83,12 +82,10 @@ export function ResolveForm({ bet }: Props) {
         </div>
       </div>
 
-      {/* Winning side */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Who Won?</h2>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Outcome</h2>
 
-        <div className="grid grid-cols-2 gap-3">
-          {/* Side A */}
+        <div className="grid gap-3 md:grid-cols-3">
           <button
             type="button"
             onClick={() => setWinningSide("A")}
@@ -109,7 +106,6 @@ export function ResolveForm({ bet }: Props) {
             )}
           </button>
 
-          {/* Side B */}
           <button
             type="button"
             onClick={() => setWinningSide("B")}
@@ -129,6 +125,22 @@ export function ResolveForm({ bet }: Props) {
               </div>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setWinningSide("PUSH")}
+            className={`border rounded-xl p-4 text-left transition-all ${
+              winningSide === "PUSH"
+                ? "border-amber-500 bg-amber-500/10"
+                : "border-gray-700 hover:border-gray-600"
+            }`}
+          >
+            <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Push</div>
+            <div className="font-semibold text-amber-300">No winner, no loser</div>
+            {winningSide === "PUSH" && (
+              <div className="text-xs text-amber-200 mt-1">Everyone gets their stake back</div>
+            )}
+          </button>
         </div>
 
         {winningSide && (
@@ -139,33 +151,36 @@ export function ResolveForm({ bet }: Props) {
                 {sideB.map((p) => (
                   <div key={p.id} className="text-gray-300">
                     {p.participantName} pays{" "}
-                    {sideA.map((w) => w.participantName).join(", ")} —{" "}
+                    {sideA.map((w) => w.participantName).join(", ")} -{" "}
                     <span className="text-white font-medium">
                       ${(payout.sideBTransferIfAWins / sideA.length).toFixed(2)}
                     </span>
                   </div>
                 ))}
               </>
-            ) : (
+            ) : winningSide === "B" ? (
               <>
                 {sideA.map((p) => (
                   <div key={p.id} className="text-gray-300">
                     {p.participantName} pays{" "}
-                    {sideB.map((w) => w.participantName).join(", ")} —{" "}
+                    {sideB.map((w) => w.participantName).join(", ")} -{" "}
                     <span className="text-white font-medium">
                       ${(payout.sideATransferIfBWins / sideB.length).toFixed(2)}
                     </span>
                   </div>
                 ))}
               </>
+            ) : (
+              <div className="text-gray-300">Push recorded. No money changes hands.</div>
             )}
           </div>
         )}
       </div>
 
-      {/* Metadata */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Resolution Details</h2>
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
+          Resolution Details
+        </h2>
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">Resolved Date</label>

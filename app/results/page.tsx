@@ -41,7 +41,9 @@ export default function ResultsPage() {
   useEffect(() => {
     fetch(apiUrl("/api/participants"))
       .then((response) => response.json())
-      .then((data: { name: string }[]) => setParticipants(data.map((participant) => participant.name)))
+      .then((data: { name: string }[]) =>
+        setParticipants(data.map((participant) => participant.name))
+      )
       .catch(() => {});
   }, []);
 
@@ -65,7 +67,9 @@ export default function ResultsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-white">Results and History</h1>
-          <p className="text-gray-400 mt-1">{bets.length} bet{bets.length !== 1 ? "s" : ""} found</p>
+          <p className="text-gray-400 mt-1">
+            {bets.length} bet{bets.length !== 1 ? "s" : ""} found
+          </p>
         </div>
         <div className="flex gap-3">
           <a
@@ -138,7 +142,10 @@ export default function ResultsPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="bg-gray-900 border border-gray-800 rounded-xl p-5 animate-pulse h-32" />
+            <div
+              key={item}
+              className="bg-gray-900 border border-gray-800 rounded-xl p-5 animate-pulse h-32"
+            />
           ))}
         </div>
       ) : bets.length === 0 ? (
@@ -159,14 +166,18 @@ function ResultRow({ bet }: { bet: BetData }) {
   const sideB = bet.participants.filter((participant) => participant.side === "B");
   const resolution = bet.resolution;
 
-  let winnerLabel = "";
+  let outcomeLabel = "";
   let loserLabel = "";
 
   if (resolution) {
-    const winners = resolution.winningSide === "A" ? sideA : sideB;
-    const losers = resolution.winningSide === "A" ? sideB : sideA;
-    winnerLabel = winners.map((participant) => participant.participantName).join(", ");
-    loserLabel = losers.map((participant) => participant.participantName).join(", ");
+    if (resolution.winningSide === "PUSH") {
+      outcomeLabel = "Push";
+    } else {
+      const winners = resolution.winningSide === "A" ? sideA : sideB;
+      const losers = resolution.winningSide === "A" ? sideB : sideA;
+      outcomeLabel = winners.map((participant) => participant.participantName).join(", ");
+      loserLabel = losers.map((participant) => participant.participantName).join(", ");
+    }
   }
 
   return (
@@ -175,7 +186,9 @@ function ResultRow({ bet }: { bet: BetData }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <StatusBadge status={bet.status} />
-            <span className="text-xs text-gray-500">{format(new Date(bet.createdAt), "MMM d, yyyy")}</span>
+            <span className="text-xs text-gray-500">
+              {format(new Date(bet.createdAt), "MMM d, yyyy")}
+            </span>
           </div>
           <h3 className="font-semibold text-white">{bet.title}</h3>
           {bet.description && (
@@ -184,20 +197,26 @@ function ResultRow({ bet }: { bet: BetData }) {
           <div className="flex flex-wrap gap-4 mt-2 text-sm">
             <div>
               <span className="text-gray-500 text-xs">Side A: </span>
-              <span className="text-blue-300">{sideA.map((participant) => participant.participantName).join(", ")}</span>
+              <span className="text-blue-300">
+                {sideA.map((participant) => participant.participantName).join(", ")}
+              </span>
               <span className="text-gray-500 text-xs"> ({bet.sideALabel})</span>
             </div>
             <span className="text-gray-700">vs</span>
             <div>
               <span className="text-gray-500 text-xs">Side B: </span>
-              <span className="text-rose-300">{sideB.map((participant) => participant.participantName).join(", ")}</span>
+              <span className="text-rose-300">
+                {sideB.map((participant) => participant.participantName).join(", ")}
+              </span>
               <span className="text-gray-500 text-xs"> ({bet.sideBLabel})</span>
             </div>
           </div>
         </div>
         <div className="text-right shrink-0">
           <div className="text-xl font-bold text-white">${bet.stakeAmount.toFixed(0)}</div>
-          <div className="text-xs text-gray-500">{formatOdds(bet.oddsType, bet.oddsValueA, bet.oddsValueB)}</div>
+          <div className="text-xs text-gray-500">
+            {formatOdds(bet.oddsType, bet.oddsValueA, bet.oddsValueB)}
+          </div>
           {bet.resolution?.resolvedAt && (
             <div className="text-xs text-gray-600 mt-1">
               Resolved {format(new Date(bet.resolution.resolvedAt), "MMM d")}
@@ -209,16 +228,27 @@ function ResultRow({ bet }: { bet: BetData }) {
       {resolution && (
         <div className="mt-3 pt-3 border-t border-gray-800 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <div>
-            <span className="text-gray-500">Winner: </span>
-            <span className="text-emerald-300 font-semibold">{winnerLabel}</span>
+            <span className="text-gray-500">Outcome: </span>
+            <span
+              className={
+                resolution.winningSide === "PUSH"
+                  ? "text-amber-300 font-semibold"
+                  : "text-emerald-300 font-semibold"
+              }
+            >
+              {outcomeLabel}
+            </span>
           </div>
-          <div>
-            <span className="text-gray-500">Loser: </span>
-            <span className="text-rose-300">{loserLabel}</span>
-          </div>
+          {resolution.winningSide !== "PUSH" && (
+            <div>
+              <span className="text-gray-500">Loser: </span>
+              <span className="text-rose-300">{loserLabel}</span>
+            </div>
+          )}
           {resolution.moneyTransfers.map((transfer) => (
             <div key={transfer.id} className="text-gray-400 text-xs">
-              {transfer.fromName} -&gt; {transfer.toName}: <span className="text-white">${transfer.amount.toFixed(2)}</span>
+              {transfer.fromName} -&gt; {transfer.toName}:{" "}
+              <span className="text-white">${transfer.amount.toFixed(2)}</span>
             </div>
           ))}
           {resolution.verifiedBy && (

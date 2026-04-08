@@ -1,5 +1,6 @@
 export type BetStatus = "OPEN" | "RESOLVED" | "CANCELLED";
 export type OddsType = "EVEN" | "AMERICAN" | "DECIMAL";
+export type ResolutionOutcome = "A" | "B" | "PUSH";
 
 export interface BetParticipantData {
   id: string;
@@ -14,7 +15,7 @@ export interface ResolutionData {
   id: string;
   betId: string;
   resolvedAt: string;
-  winningSide: string;
+  winningSide: ResolutionOutcome;
   verifiedBy: string | null;
   notes: string | null;
   moneyTransfers: MoneyTransferData[];
@@ -55,6 +56,7 @@ export interface ParticipantStats {
   totalBets: number;
   betsWon: number;
   betsLost: number;
+  betsPushed: number;
   winPct: number;
   totalWon: number;
   totalLost: number;

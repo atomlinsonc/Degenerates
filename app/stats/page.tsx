@@ -37,7 +37,7 @@ export default function StatsPage() {
     fetchAll();
   }, [fetchAll]);
 
-  const totalResolved = stats.reduce((s, p) => s + p.betsWon + p.betsLost, 0) / 2;
+  const totalResolved = stats.reduce((s, p) => s + p.totalBets, 0) / 2;
   const totalMoved = stats.reduce((s, p) => s + p.totalWon, 0);
 
   return (
@@ -131,7 +131,7 @@ function PlayerCard({ stats: s }: { stats: ParticipantStats }) {
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
         <Stat label="Bets" value={s.totalBets.toString()} />
-        <Stat label="W-L" value={`${s.betsWon}-${s.betsLost}`} />
+        <Stat label="W-L-P" value={`${s.betsWon}-${s.betsLost}-${s.betsPushed}`} />
         <Stat label="Win%" value={`${s.winPct}%`} color={s.winPct >= 50 ? "emerald" : "rose"} />
       </div>
       <div className="grid grid-cols-2 gap-2 text-center">

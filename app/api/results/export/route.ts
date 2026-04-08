@@ -75,11 +75,15 @@ export async function GET(request: NextRequest) {
     const winners =
       bet.resolution?.winningSide === "A"
         ? bet.participants.filter((participant) => participant.side === "A")
-        : bet.participants.filter((participant) => participant.side === "B");
+        : bet.resolution?.winningSide === "B"
+          ? bet.participants.filter((participant) => participant.side === "B")
+          : [];
     const losers =
       bet.resolution?.winningSide === "A"
         ? bet.participants.filter((participant) => participant.side === "B")
-        : bet.participants.filter((participant) => participant.side === "A");
+        : bet.resolution?.winningSide === "B"
+          ? bet.participants.filter((participant) => participant.side === "A")
+          : [];
 
     return [
       bet.title,
