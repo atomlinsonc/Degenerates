@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Dices } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -19,8 +19,16 @@ export function Nav() {
     <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
       <div className="container mx-auto max-w-7xl px-4 flex items-center gap-6 h-14">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white shrink-0">
-          <Dices className="w-6 h-6 text-emerald-400" />
-          <span className="hidden sm:inline">Degenerates</span>
+          <Image
+            src="/texas-ryder.jpeg"
+            alt=""
+            width={32}
+            height={32}
+            className="rounded-full border border-gray-800"
+          />
+          <span className="hidden sm:inline" style={{ fontFamily: "Georgia, serif" }}>
+            Texas Ryder Betting
+          </span>
         </Link>
         <nav className="flex items-center gap-1 overflow-x-auto">
           {links.map((l) => {

@@ -1,8 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f3f4f6;
+  /* Texas Ryder Cup palette */
+  --txry-bg: #0f0f10;
+  --txry-bg-elev: #1a1a1c;
+  --txry-bg-card: #222226;
+  --txry-bg-card-hi: #2a2a2f;
+  --txry-border: #33333a;
+  --txry-text: #f3ead6;
+  --txry-text-dim: #b9b1a2;
+  --txry-text-mute: #7d7669;
+  --txry-teal: #4ECDC4;
+  --txry-teal-soft: rgba(78, 205, 196, 0.18);
+  --txry-gold: #D4A24C;
+  --txry-gold-soft: rgba(212, 162, 76, 0.18);
+  --txry-good: #6cd17a;
+  --txry-bad: #e26d6d;
+  --txry-warn: #e9c46a;
+
+  --background: var(--txry-bg);
+  --foreground: var(--txry-text);
 }
 
 @theme inline {
@@ -13,9 +30,15 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--txry-bg);
+  color: var(--txry-text);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Serif headings to match the pick'em site */
+h1, h2, h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.02em;
 }
 
 /* Scrollbar */
@@ -27,9 +50,107 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: var(--txry-border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: #4b4b54;
+}
+
+/* ============================================================
+ * Texas Ryder Cup theme overrides
+ *
+ * The Degenerates UI is built with Tailwind utility classes
+ * (bg-gray-*, text-gray-*, emerald-*). Rather than rewriting every
+ * component, we remap those utility classes to the Texas Ryder
+ * palette. This keeps all betting functionality untouched — only
+ * colors change.
+ * ============================================================ */
+
+/* Backgrounds */
+.bg-gray-950 { background-color: var(--txry-bg) !important; }
+.bg-gray-900 { background-color: var(--txry-bg-elev) !important; }
+.bg-gray-900\/50 { background-color: color-mix(in srgb, var(--txry-bg-elev) 50%, transparent) !important; }
+.bg-gray-800 { background-color: var(--txry-bg-card) !important; }
+.bg-gray-800\/50 { background-color: color-mix(in srgb, var(--txry-bg-card) 50%, transparent) !important; }
+.bg-gray-700 { background-color: var(--txry-bg-card-hi) !important; }
+.bg-gray-950\/80 { background-color: color-mix(in srgb, var(--txry-bg) 85%, transparent) !important; }
+.hover\:bg-gray-800:hover { background-color: var(--txry-bg-card) !important; }
+.hover\:bg-gray-700:hover { background-color: var(--txry-bg-card-hi) !important; }
+
+/* Text */
+.text-white { color: var(--txry-text) !important; }
+.text-gray-100 { color: var(--txry-text) !important; }
+.text-gray-200 { color: var(--txry-text) !important; }
+.text-gray-300 { color: var(--txry-text-dim) !important; }
+.text-gray-400 { color: var(--txry-text-dim) !important; }
+.text-gray-500 { color: var(--txry-text-mute) !important; }
+.text-gray-600 { color: var(--txry-text-mute) !important; }
+.hover\:text-gray-100:hover { color: var(--txry-text) !important; }
+.hover\:text-white:hover { color: var(--txry-text) !important; }
+
+/* Borders */
+.border-gray-800 { border-color: var(--txry-border) !important; }
+.border-gray-700 { border-color: var(--txry-border) !important; }
+.border-gray-600 { border-color: var(--txry-text-mute) !important; }
+
+/* Accent: emerald → teal */
+.text-emerald-300,
+.text-emerald-400,
+.text-emerald-500 { color: var(--txry-teal) !important; }
+.bg-emerald-500,
+.bg-emerald-600 { background-color: var(--txry-teal) !important; color: #08312e !important; }
+.bg-emerald-500\/20 { background-color: var(--txry-teal-soft) !important; }
+.bg-emerald-500\/10 { background-color: color-mix(in srgb, var(--txry-teal) 10%, transparent) !important; }
+.border-emerald-500,
+.border-emerald-400 { border-color: var(--txry-teal) !important; }
+.hover\:bg-emerald-600:hover { background-color: var(--txry-teal) !important; filter: brightness(1.1); }
+.hover\:bg-emerald-500:hover { background-color: var(--txry-teal) !important; filter: brightness(1.1); }
+.ring-emerald-500,
+.ring-emerald-400 { --tw-ring-color: var(--txry-teal) !important; }
+.focus\:ring-emerald-500:focus { --tw-ring-color: var(--txry-teal) !important; }
+
+/* Positive / win cues stay teal but use gold for highlights */
+.text-green-300,
+.text-green-400,
+.text-green-500 { color: var(--txry-good) !important; }
+.bg-green-500\/20 { background-color: color-mix(in srgb, var(--txry-good) 18%, transparent) !important; }
+
+/* Warning / amber → gold */
+.text-yellow-300,
+.text-yellow-400,
+.text-amber-300,
+.text-amber-400 { color: var(--txry-gold) !important; }
+.bg-yellow-500,
+.bg-amber-500 { background-color: var(--txry-gold) !important; color: #1f1305 !important; }
+.bg-yellow-500\/20,
+.bg-amber-500\/20 { background-color: var(--txry-gold-soft) !important; }
+.border-yellow-500,
+.border-amber-500 { border-color: var(--txry-gold) !important; }
+
+/* Red (loss) stays a muted brick red but matches palette */
+.text-red-300,
+.text-red-400,
+.text-red-500 { color: var(--txry-bad) !important; }
+.bg-red-500\/20 { background-color: color-mix(in srgb, var(--txry-bad) 18%, transparent) !important; }
+.bg-red-500,
+.bg-red-600 { background-color: #5a2424 !important; color: var(--txry-text) !important; }
+
+/* Form controls */
+input, select, textarea {
+  background-color: var(--txry-bg-elev);
+  color: var(--txry-text);
+  border-color: var(--txry-border);
+}
+input::placeholder, textarea::placeholder { color: var(--txry-text-mute); }
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--txry-teal);
+  outline-offset: 1px;
+}
+
+/* Cards */
+.rounded-lg,
+.rounded-xl,
+.rounded-md {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
